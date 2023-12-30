@@ -12,6 +12,8 @@ This repository contains machine-specific configuration to accompany my
 be useful to anyone but me, but others may be interested in seeing how these
 files are organized.
 
+Configuration for specific computers (or groups of computers) is maintained in separate branches in this repo.
+
 License
 -------
 

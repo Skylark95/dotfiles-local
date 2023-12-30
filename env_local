@@ -1,0 +1,2 @@
+# shell
+export DOTFILES_LOCAL="$HOME/.dotfiles-local"

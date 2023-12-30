@@ -1,0 +1,2 @@
+ # Quick jump to dotfiles (local)
+ alias dotfiles="cd $DOTFILES_LOCAL"
