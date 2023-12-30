@@ -9,6 +9,8 @@
     ~/.alias_local:
     ~/.env_local:
     ~/.gitconfig_local:
+    ~/.config/kitty/local.conf:
+      path: kitty/local.conf
 
 - shell: 
   - git submodule sync --recursive
