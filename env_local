@@ -1,2 +1,6 @@
+# browser
+export BROWSER="/opt/google/chrome/google-chrome"
+
+
 # shell
 export DOTFILES_LOCAL="$HOME/.dotfiles-local"
