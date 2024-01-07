@@ -1,2 +1,4 @@
 # shell
 export DOTFILES_LOCAL="$HOME/.dotfiles-local"
+export SPACESHIP_HOST_SHOW=false
+export SPACESHIP_USER_SHOW=false
