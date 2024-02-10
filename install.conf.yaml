@@ -9,6 +9,8 @@
     ~/.alias_local:
     ~/.env_local:
     ~/.gitconfig_local:
+    ~/.config/systemd/user/rclone@.service:
+      path: systemd/rclone@.service
 
 - shell: 
   - git submodule sync --recursive
