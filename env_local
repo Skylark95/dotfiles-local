@@ -1,2 +1,3 @@
 # shell
 export DOTFILES_LOCAL="$HOME/.dotfiles-local"
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
