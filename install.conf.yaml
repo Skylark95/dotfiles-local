@@ -5,11 +5,12 @@
 
 - clean: ['~', '~/.config/kitty']
 
-- link: 
+- link:
     ~/.alias_local:
     ~/.env_local:
     ~/.gitconfig_local:
+    ~/.npmrc:
 
-- shell: 
+- shell:
   - git submodule sync --recursive
   - git submodule update --init --recursive
