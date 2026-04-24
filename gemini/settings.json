@@ -9,7 +9,15 @@
     "previewFeatures": true,
     "enablePromptCompletion": false,
     "enableAutoUpdate": false,
-    "preferredEditor": "neovim"
+    "preferredEditor": "neovim",
+    "sessionRetention": {
+      "warningAcknowledged": true,
+      "enabled": true,
+      "maxAge": "120d"
+    },
+    "plan": {
+      "enabled": true
+    }
   },
   "tools": {
     "shell": {
@@ -24,12 +32,17 @@
     "showCitations": true
   },
   "context": {
-    "fileName": ["AGENTS.md", "CONTEXT.md", "GEMINI.md"]
+    "fileName": [
+      "AGENTS.md",
+      "CONTEXT.md",
+      "GEMINI.md"
+    ]
   },
-  "experimental": {
-    "plan": true
-  },
+  "experimental": {},
   "ide": {
     "enabled": true
+  },
+  "agents": {
+    "overrides": {}
   }
 }
