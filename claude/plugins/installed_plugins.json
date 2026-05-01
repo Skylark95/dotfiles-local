@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "plugins": {
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "/home/derek/.claude/plugins/cache/claude-plugins-official/frontend-design/unknown",
+        "version": "unknown",
+        "installedAt": "2026-04-18T20:39:53.335Z",
+        "lastUpdated": "2026-04-18T20:39:53.335Z"
+      }
+    ]
+  }
+}
