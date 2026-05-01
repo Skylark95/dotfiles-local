@@ -3,7 +3,7 @@
       create: true
       relink: true
 
-- clean: ['~', '~/.config/kitty']
+- clean: ['~', '~/.config/kitty', '~/.config/ghostty']
 
 - link:
     ~/.alias_local:
@@ -11,6 +11,8 @@
     ~/.gitconfig_local:
     ~/.npmrc:
     ~/.gemini/settings.json: gemini/settings.json
+    ~/.config/ghostty/config.ghostty: ghostty/config.ghostty
+    ~/.config/ghostty/launch-tmux.sh: ghostty/launch-tmux.sh
 
 - shell:
   - git submodule sync --recursive

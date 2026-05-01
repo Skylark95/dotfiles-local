@@ -1,0 +1,3 @@
+command = /home/derek/.config/ghostty/launch-tmux.sh
+shell-integration = zsh
+theme = Dracula
