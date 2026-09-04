@@ -11,6 +11,7 @@ This repository uses a **branch-per-machine** (or group of machines) strategy to
 - `master`: Contains common "local" defaults and templates shared across most environments.
 - **Workstation branches**: Tailored configurations for specific hardware or OS distributions. Examples include:
     - `popos`: Main desktop configuration.
+    - `fedora`: Fedora workstation configuration.
     - `chromebook-debian`: Linux environment on Chromebook.
     - `thinkcentre-arch` / `thinkcentre-debian`: Home server/desktop setups.
     - `linuxbrew`: Environments using Homebrew on Linux.
@@ -46,6 +47,10 @@ Ensure the main [dotfiles](https://github.com/Skylark95/dotfiles) repository is 
 3.  Run the idempotent install script:
     ```bash
     ./install
+    ```
+4.  (`fedora` branch only) Install the software packages these dotfiles expect via `dnf`, plus a couple of `$HOME`-local tools not packaged for Fedora:
+    ```bash
+    ./install-deps.sh
     ```
 
 Adding a New Workstation
