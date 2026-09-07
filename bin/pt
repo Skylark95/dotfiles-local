@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# pt — 3D print file workflow helper for the GoogleDrive/3D-Printing folder
+# Moves/renames files between the pipeline folders following the naming convention
+# in CLAUDE.md:  STAGE_ProjectName_Material_Color_v#.ext
+#
+#   pt ready <path...> [-n NewName]   stage sliced files into 02_Print-Ready as READY_
+#   pt done  <match>                  READY_* matching <match> -> 03_Printed as DONE_
+#   pt fail  <match> [note]           READY_* matching <match> -> 03_Printed as FAILED_
+#   pt redo  <match>                  DONE_/FAILED_ in 03_Printed -> back to 02_Print-Ready as READY_
+#   pt src   <path...> -s SITE [-n Name]   stash a download in 01_Models/Sources/<SITE> as SRC_
+#   pt ls                             show every pipeline folder's contents
+#   pt sync                           run: rclone bisync gdrive-3dprint: <root>
+#
+# Every mutating command prints what it will do and asks before touching anything.
+
+set -euo pipefail
+
+ROOT="${PT_ROOT:-$HOME/GoogleDrive/3D-Printing}"
+READY_DIR="$ROOT/02_Print-Ready"
+PRINTED_DIR="$ROOT/03_Printed"
+SRC_DIR="$ROOT/01_Models/Sources"
+
+die()  { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
+info() { printf '\033[36m%s\033[0m\n' "$*"; }
+
+confirm() {
+  local ans
+  read -rp "$* [y/N] " ans
+  [[ $ans == [yY] || $ans == [yY][eE][sS] ]]
+}
+
+# rename prefix of a basename:  READY_Foo_x.gcode  DONE  ->  DONE_Foo_x.gcode
+reprefix() {
+  local base=$1 newpfx=$2
+  printf '%s_%s' "$newpfx" "${base#*_}"
+}
+
+find_matches() {  # <dir> <regex-of-prefixes> <substring>
+  local dir=$1 pfx=$2 needle=$3
+  find "$dir" -maxdepth 1 -type f -regextype posix-extended \
+    -regex ".*/(${pfx})_[^/]*" -iname "*${needle}*" | sort
+}
+
+move_group() {  # <newprefix> <destdir> <file>...
+  local newpfx=$1 dest=$2; shift 2
+  local f base target
+  info "Planned:"
+  for f in "$@"; do
+    base=$(basename "$f")
+    target="$dest/$(reprefix "$base" "$newpfx")"
+    printf '  %s\n    -> %s\n' "$f" "$target"
+  done
+  confirm "Proceed?" || { info "Aborted."; return 1; }
+  for f in "$@"; do
+    base=$(basename "$f")
+    target="$dest/$(reprefix "$base" "$newpfx")"
+    [[ -e $target ]] && die "Target exists: $target"
+    mv -n -- "$f" "$target"
+  done
+  info "Done. Run 'pt sync' to push to Drive."
+}
+
+cmd_ready() {
+  local name="" files=()
+  while (($#)); do
+    case $1 in
+      -n) name=$2; shift 2 ;;
+      *)  files+=("$1"); shift ;;
+    esac
+  done
+  ((${#files[@]})) || die "usage: pt ready <path...> [-n NewName]"
+  info "Planned:"
+  local f base target targets=()
+  for f in "${files[@]}"; do
+    [[ -f $f ]] || die "not a file: $f"
+    base=$(basename "$f")
+    if [[ -n $name ]]; then
+      target="$READY_DIR/READY_${name}.${base##*.}"
+    elif [[ $base == READY_* ]]; then
+      target="$READY_DIR/$base"
+    elif [[ $base =~ ^(SRC|MOD|DONE|FAILED)_ ]]; then
+      target="$READY_DIR/$(reprefix "$base" READY)"
+    else
+      target="$READY_DIR/READY_${base}"
+    fi
+    targets+=("$target")
+    printf '  %s\n    -> %s\n' "$f" "$target"
+  done
+  confirm "Proceed?" || { info "Aborted."; return 1; }
+  local i
+  for i in "${!files[@]}"; do
+    [[ -e ${targets[$i]} ]] && die "Target exists: ${targets[$i]}"
+    mv -n -- "${files[$i]}" "${targets[$i]}"
+  done
+  info "Done. Run 'pt sync' to push to Drive."
+}
+
+cmd_done_fail() {
+  local newpfx=$1 needle=${2:-}
+  [[ -n $needle ]] || die "usage: pt ${newpfx,,} <match>"
+  mapfile -t hits < <(find_matches "$READY_DIR" "READY" "$needle")
+  ((${#hits[@]})) || die "No READY_* files in 02_Print-Ready matching '$needle'"
+  move_group "$newpfx" "$PRINTED_DIR" "${hits[@]}"
+}
+
+cmd_redo() {
+  local needle=${1:-}
+  [[ -n $needle ]] || die "usage: pt redo <match>"
+  mapfile -t hits < <(find_matches "$PRINTED_DIR" "DONE|FAILED" "$needle")
+  ((${#hits[@]})) || die "No DONE_/FAILED_ files in 03_Printed matching '$needle'"
+  move_group "READY" "$READY_DIR" "${hits[@]}"
+}
+
+cmd_src() {
+  local site="" name="" files=()
+  while (($#)); do
+    case $1 in
+      -s) site=$2; shift 2 ;;
+      -n) name=$2; shift 2 ;;
+      *)  files+=("$1"); shift ;;
+    esac
+  done
+  [[ -n $site ]] || die "usage: pt src <path...> -s SITE [-n Name]"
+  ((${#files[@]})) || die "no files given"
+  local dest="$SRC_DIR/$site"
+  [[ -d $dest ]] || die "unknown source site dir: $dest"
+  info "Planned:"
+  local f base target targets=()
+  for f in "${files[@]}"; do
+    base=$(basename "$f")
+    if [[ -n $name ]]; then target="$dest/SRC_${name}.${base##*.}"
+    elif [[ $base == SRC_* ]]; then target="$dest/$base"
+    else target="$dest/SRC_${base}"; fi
+    targets+=("$target")
+    printf '  %s\n    -> %s\n' "$f" "$target"
+  done
+  confirm "Proceed?" || { info "Aborted."; return 1; }
+  local i
+  for i in "${!files[@]}"; do
+    [[ -e ${targets[$i]} ]] && die "Target exists: ${targets[$i]}"
+    mv -n -- "${files[$i]}" "${targets[$i]}"
+  done
+  info "Done. Run 'pt sync' to push to Drive."
+}
+
+cmd_ls() {
+  local d
+  for d in "$SRC_DIR" "$ROOT/01_Models/Modified" "$READY_DIR" "$PRINTED_DIR" "$ROOT/05_Wishlist"; do
+    printf '\033[1m%s\033[0m\n' "${d#$ROOT/}"
+    if [[ -d $d ]]; then
+      find "$d" -type f ! -name '.*' -printf '  %P\n' | sort || true
+    fi
+    echo
+  done
+}
+
+cmd_sync() {
+  command -v rclone >/dev/null || die "rclone not found"
+  info "rclone bisync gdrive-3dprint: $ROOT"
+  confirm "Proceed?" || { info "Aborted."; return 1; }
+  rclone bisync "gdrive-3dprint:" "$ROOT" --create-empty-src-dirs "$@"
+}
+
+case "${1:-}" in
+  ready) shift; cmd_ready "$@" ;;
+  done)  shift; cmd_done_fail DONE "$@" ;;
+  fail)  shift; cmd_done_fail FAILED "$@" ;;
+  redo)  shift; cmd_redo "$@" ;;
+  src)   shift; cmd_src "$@" ;;
+  ls)    shift; cmd_ls ;;
+  sync)  shift; cmd_sync "$@" ;;
+  ""|-h|--help|help)
+    sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) die "unknown command: $1  (try: pt help)" ;;
+esac
