@@ -1,3 +1,7 @@
  # Quick jump to dotfiles (local)
  alias dotfileslocal="cd $DOTFILES_LOCAL"
  alias vim="nvim"
+
+ # On-demand rclone bisync for the 3D Printing Google Drive folder
+ # (runs the same systemd unit as the 10-min timer; schedule stays intact)
+ alias 3dsync="systemctl --user start gdrive-3dprint-sync.service && journalctl --user -u gdrive-3dprint-sync.service -n 20 --no-pager"
