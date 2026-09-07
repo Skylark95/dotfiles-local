@@ -12,7 +12,6 @@
     ~/.npmrc:
     ~/.gemini/settings.json: gemini/settings.json
     ~/.claude/settings.json: claude/settings.json
-    ~/.claude/plugins/installed_plugins.json: claude/plugins/installed_plugins.json
     ~/.config/ghostty/config.ghostty: ghostty/config.ghostty
     ~/.config/ghostty/launch-tmux.sh: ghostty/launch-tmux.sh
     ~/.local/bin/pt: bin/pt
