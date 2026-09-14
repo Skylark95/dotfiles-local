@@ -12,6 +12,8 @@
 #   pt sync                           run: rclone bisync gdrive-3dprint: <root>
 #
 # Every mutating command prints what it will do and asks before touching anything.
+# Pass -y / --yes (anywhere in the args) to skip the confirmation prompt and run
+# non-interactively.
 
 set -euo pipefail
 
@@ -20,10 +22,27 @@ READY_DIR="$ROOT/02_Print-Ready"
 PRINTED_DIR="$ROOT/03_Printed"
 SRC_DIR="$ROOT/01_Models/Sources"
 
+# Pull -y/--yes out of the args wherever it appears, leaving the rest untouched
+# (so e.g. `pt sync -y --resync` still forwards --resync to rclone).
+AUTO_YES=0
+args=()
+for a in "$@"; do
+  if [[ $a == -y || $a == --yes ]]; then
+    AUTO_YES=1
+  else
+    args+=("$a")
+  fi
+done
+set -- "${args[@]}"
+
 die()  { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 info() { printf '\033[36m%s\033[0m\n' "$*"; }
 
 confirm() {
+  if ((AUTO_YES)); then
+    info "$* [y/N] y (auto-confirmed via -y)"
+    return 0
+  fi
   local ans
   read -rp "$* [y/N] " ans
   [[ $ans == [yY] || $ans == [yY][eE][sS] ]]
@@ -156,9 +175,11 @@ cmd_ls() {
 
 cmd_sync() {
   command -v rclone >/dev/null || die "rclone not found"
+  local filter_args=()
+  [[ -f "$ROOT/.rclone-filter" ]] && filter_args=(--filters-file "$ROOT/.rclone-filter")
   info "rclone bisync gdrive-3dprint: $ROOT"
   confirm "Proceed?" || { info "Aborted."; return 1; }
-  rclone bisync "gdrive-3dprint:" "$ROOT" --create-empty-src-dirs "$@"
+  rclone bisync "gdrive-3dprint:" "$ROOT" --create-empty-src-dirs "${filter_args[@]}" "$@"
 }
 
 case "${1:-}" in
