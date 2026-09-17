@@ -10,6 +10,7 @@
 #   pt src   <path...> -s SITE [-n Name]   stash a download in 01_Models/Sources/<SITE> as SRC_
 #   pt ls                             show every pipeline folder's contents
 #   pt sync                           run: rclone bisync gdrive-3dprint: <root>
+#   pt status                         show sync timer + last sync service status
 #
 # Every mutating command prints what it will do and asks before touching anything.
 # Pass -y / --yes (anywhere in the args) to skip the confirmation prompt and run
@@ -182,6 +183,12 @@ cmd_sync() {
   rclone bisync "gdrive-3dprint:" "$ROOT" --create-empty-src-dirs "${filter_args[@]}" "$@"
 }
 
+cmd_status() {
+  systemctl --user status gdrive-3dprint-sync.timer --no-pager -l || true
+  echo
+  systemctl --user status gdrive-3dprint-sync.service --no-pager -l || true
+}
+
 case "${1:-}" in
   ready) shift; cmd_ready "$@" ;;
   done)  shift; cmd_done_fail DONE "$@" ;;
@@ -190,6 +197,7 @@ case "${1:-}" in
   src)   shift; cmd_src "$@" ;;
   ls)    shift; cmd_ls ;;
   sync)  shift; cmd_sync "$@" ;;
+  status) shift; cmd_status ;;
   ""|-h|--help|help)
     sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' ;;
   *) die "unknown command: $1  (try: pt help)" ;;
