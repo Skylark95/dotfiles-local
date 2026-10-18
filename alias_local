@@ -7,4 +7,13 @@
  alias 3dsync="systemctl --user start gdrive-3dprint-sync.service && journalctl --user -u gdrive-3dprint-sync.service -n 20 --no-pager"
 
 # zoxide: smarter cd (z, zi)
-command -v zoxide &>/dev/null && eval "$(zoxide init zsh)"
+if command -v zoxide &>/dev/null; then
+  eval "$(zoxide init zsh)"
+  # compinit runs after this file is sourced; register completion on first prompt
+  _zoxide_compdef() {
+    compdef __zoxide_z_complete z
+    precmd_functions=(${precmd_functions:#_zoxide_compdef})
+    unset -f _zoxide_compdef
+  }
+  precmd_functions+=(_zoxide_compdef)
+fi
