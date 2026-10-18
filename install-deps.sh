@@ -29,6 +29,9 @@ declare -A dnf_bin=(
 for pkg in "${!dnf_bin[@]}"; do
   have "${dnf_bin[$pkg]}" || dnf_pkgs+=("$pkg")
 done
+# Snacks (LazyVim) dlopen()s the unversioned libsqlite3.so, which only ships
+# in sqlite-devel (plain sqlite provides just libsqlite3.so.0)
+[[ -e /usr/lib64/libsqlite3.so ]] || dnf_pkgs+=(sqlite-devel)
 if [[ ${#dnf_pkgs[@]} -gt 0 ]]; then
   sudo dnf install -y "${dnf_pkgs[@]}"
 else
