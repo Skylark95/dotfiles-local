@@ -10,7 +10,6 @@ Machine-specific dotfiles companion to the main [dotfiles](https://github.com/Sk
 
 ```bash
 ./install               # Symlink all files per install.conf.yaml (idempotent)
-./install --dry-run     # Preview changes without applying
 ./install --only link   # Run only specific directives
 ./install --except shell  # Skip specific directives
 ```
