@@ -9,8 +9,9 @@
 #
 # Usage: ./install-deps.sh [--upgrade] [step...]
 #   --upgrade   also reinstall the GitHub-release tools (nvim, lazygit, gitui,
-#               tofu) when a newer release is available
-#   step        run only these steps: apt fd bun pnpm lazygit gitui tofu nvim
+#               tofu, tree-sitter) when a newer release is available
+#   step        run only these steps: apt fd bun pnpm lazygit gitui tofu
+#               treesitter nvim
 
 set -euo pipefail
 
@@ -21,7 +22,7 @@ steps=()
 for arg in "$@"; do
   case "$arg" in
     --upgrade) upgrade=true ;;
-    apt|fd|bun|pnpm|lazygit|gitui|tofu|nvim) steps+=("$arg") ;;
+    apt|fd|bun|pnpm|lazygit|gitui|tofu|treesitter|nvim) steps+=("$arg") ;;
     *) echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
@@ -33,8 +34,8 @@ trap 'rm -rf "$workdir"' EXIT
 want() { [[ ${#steps[@]} -eq 0 || " ${steps[*]} " == *" $1 "* ]]; }
 
 case "$(uname -m)" in
-  x86_64)  arch_amd=amd64 arch_gnu=x86_64 ;;
-  aarch64) arch_amd=arm64 arch_gnu=arm64 ;;
+  x86_64)  arch_amd=amd64 arch_gnu=x86_64 arch_ts=x64 ;;
+  aarch64) arch_amd=arm64 arch_gnu=arm64 arch_ts=arm64 ;;
   *) echo "Unsupported architecture: $(uname -m)" >&2; exit 1 ;;
 esac
 
@@ -173,6 +174,23 @@ if want tofu; then
   fi
 fi
 
+if want treesitter; then
+  # nvim-treesitter (main) needs tree-sitter-cli 0.26.1+, and not the npm one.
+  # 0.26.x binaries need glibc 2.39, which Debian 12 (2.36) lacks; 0.27.x only
+  # needs it for a weak symbol, so it runs but prints a warning on every call.
+  echo "==> Installing tree-sitter-cli"
+  installed=$(have tree-sitter && tree-sitter --version 2>/dev/null | grep -Po '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo 0)
+  version=$(latest_tag tree-sitter/tree-sitter)
+  if needs_install tree-sitter "$installed" "$version"; then
+    tmp=$workdir/treesitter
+    mkdir -p "$tmp"
+    curl -fsSL -o "$tmp/tree-sitter.gz" \
+      "https://github.com/tree-sitter/tree-sitter/releases/download/v${version}/tree-sitter-linux-${arch_ts}.gz"
+    gunzip "$tmp/tree-sitter.gz"
+    install -D "$tmp/tree-sitter" "$HOME/.local/bin/tree-sitter"
+  fi
+fi
+
 if want nvim; then
   # LazyVim needs Neovim 0.11+; Debian 12 ships 0.7. Each release unpacks to
   # ~/.local/nvim-<version> and ~/.local/bin/nvim points at the active one, so
@@ -211,7 +229,7 @@ fi
 cat <<'EOF'
 
 Done. Notes:
-  - bun/pnpm/lazygit/gitui/tofu/nvim install into $HOME; open a new shell (or
+  - bun/pnpm/lazygit/gitui/tofu/tree-sitter/nvim install into $HOME; open a new shell (or
     `source ~/.zshrc`) to pick up their PATH/completions entries already wired
     up in this dotfiles repo.
   - Run `./install-deps.sh --upgrade` to update the GitHub-release tools.
