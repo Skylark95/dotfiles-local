@@ -13,7 +13,7 @@ This repository uses a **branch-per-machine** (or group of machines) strategy to
     - `popos`, `fedora`: Desktop workstations.
     - `chromebook` / `chromebook-debian`: Linux environment on a Chromebook.
     - `thinkcentre`, `thinkcentre-arch` / `thinkcentre-debian`: Home server/desktop setups.
-    - `linuxbrew` / `linuxbrew-debian`: Environments using Homebrew on Linux.
+    - `linuxbrew` / `linuxbrew-debian`: Formerly Homebrew-on-Linux setups. Homebrew is no longer used, so these are kept in step with `master` for possible future use.
     - `android`, `debian`: Other environments.
 
 Key Configuration Files
@@ -50,7 +50,7 @@ Ensure the main [dotfiles](https://github.com/Skylark95/dotfiles) repository is 
     ```bash
     ./install
     ```
-4.  (`fedora` branch only) Install the software packages these dotfiles expect via `dnf`, plus a couple of `$HOME`-local tools not packaged for Fedora:
+4.  (`fedora` and `chromebook-debian` branches only) Install the software packages these dotfiles expect, via `dnf` on `fedora` or `apt` on `chromebook-debian`, plus a few `$HOME`-local tools not packaged for the distro:
     ```bash
     ./install-deps.sh
     ```
