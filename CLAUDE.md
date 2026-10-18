@@ -15,26 +15,33 @@ Machine-specific dotfiles companion to the main [dotfiles](https://github.com/Sk
 ./install --except shell  # Skip specific directives
 ```
 
-After editing any config file, re-run `./install` to apply.
+`./install` also runs `git submodule sync` and `git submodule update --init --recursive` (the `shell` directive). After editing any config file, re-run `./install` to apply.
 
 ## Branching Strategy
 
-- `master` — shared defaults and templates
-- Machine branches (`fedora`, `popos`, `chromebook-debian`, etc.) — workstation-specific configs
+Each branch targets a specific machine or group of machines. `master` holds shared defaults; every other branch is workstation-specific. Run `git branch -r` for the current list (at the time of writing: `android`, `chromebook`, `chromebook-debian`, `debian`, `fedora`, `linuxbrew`, `linuxbrew-debian`, `popos`, `thinkcentre`, `thinkcentre-arch`, `thinkcentre-debian`).
 
-To create a new machine config: branch from `master`, customize `install.conf.yaml` and local files, run `./install`. To sync improvements from `master`: `git merge master`.
+- **New machine:** branch from `master`, customize `install.conf.yaml` and local files, run `./install`.
+- **Shared changes:** make them on `master`, then run `git merge master` on each machine branch that needs them.
+- **Machine-specific changes:** work on the matching branch and consider whether related branches (e.g. `chromebook` / `chromebook-debian`) need the same change.
 
 ## Managed Files
 
-`install.conf.yaml` controls what gets symlinked. Current links:
+`install.conf.yaml` controls what gets symlinked. On `master` the links are:
 
 | Repo file | Symlink target |
 |---|---|
 | `alias_local` | `~/.alias_local` |
 | `env_local` | `~/.env_local` |
 | `gitconfig_local` | `~/.gitconfig_local` |
-| `npmrc` | `~/.npmrc` |
-| `gemini/settings.json` | `~/.gemini/settings.json` |
+
+Machine branches add their own entries, for example `npmrc` → `~/.npmrc`, `kitty/local.conf` → `~/.config/kitty/local.conf`, `gemini/settings.json`, `claude/settings.json`, `ghostty/*`, or `systemd/rclone@.service`. Check the branch's `install.conf.yaml` for the real list.
+
+These are machine-local overrides that the main dotfiles repo includes (e.g. `.gitconfig_local` via the main `.gitconfig`'s `[include]`, and `.env_local` / `.alias_local` sourced by the main `zshrc`).
+
+## Conventions for `env_local`
+
+`env_local` is shared across machines, so per-tool PATH entries must be safe where the tool is absent. Guard each one with `[ -d ... ]` or `[ -f ... ]` and use `$HOME` rather than a hardcoded home directory.
 
 ## Adding a New Dotfile
 
@@ -44,4 +51,4 @@ To create a new machine config: branch from `master`, customize `install.conf.ya
 
 ## Agent Skills
 
-`.agents/skills/dotbot/` contains a reusable skill for working with Dotbot configuration. It includes reference docs (`references/`) and a template (`assets/install.conf.yaml`). The `SKILL.md` defines how agents should invoke Dotbot workflows.
+On the `fedora` branch, `.agents/skills/dotbot/` contains a reusable skill for working with Dotbot configuration (reference docs in `references/`, a template in `assets/install.conf.yaml`, and a `SKILL.md` defining how agents invoke Dotbot workflows).
