@@ -2,37 +2,53 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Overview
+## What This Repo Is
 
-This is a machine-specific dotfiles repo that works alongside the main [dotfiles](https://github.com/Skylark95/dotfiles) repository. Configuration for specific machines (or groups of machines) is maintained in **separate git branches** — each branch represents a different machine or OS configuration.
+Machine-specific dotfiles companion to the main [dotfiles](https://github.com/Skylark95/dotfiles) repo. Manages configs that vary per-workstation or contain private data not suited for the public repo. Uses [Dotbot](https://github.com/anishathalye/dotbot) (as a git submodule) to symlink files into `~`.
 
-## Installation
+## Key Commands
 
 ```bash
-./install
+./install               # Symlink all files per install.conf.yaml (idempotent)
+./install --dry-run     # Preview changes without applying
+./install --only link   # Run only specific directives
+./install --except shell  # Skip specific directives
 ```
 
-The install script is idempotent and uses [Dotbot](https://github.com/anishathalye/dotbot) (included as a git submodule) to symlink config files and run shell setup steps.
+`./install` also runs `git submodule sync` and `git submodule update --init --recursive` (the `shell` directive). After editing any config file, re-run `./install` to apply.
 
-## Branch Structure
+## Branching Strategy
 
-Each branch targets a specific machine/environment. Current branches include:
-- `master` — base/shared config
-- `chromebook`, `chromebook-debian` — Chromebook variants
-- `debian`, `linuxbrew-debian` — Debian variants
-- `linuxbrew` — Linuxbrew-based setup
-- `thinkcentre`, `thinkcentre-arch`, `thinkcentre-debian` — ThinkCentre variants
+Each branch targets a specific machine or group of machines. `master` holds shared defaults; every other branch is workstation-specific. Run `git branch -r` for the current list (at the time of writing: `android`, `chromebook`, `chromebook-debian`, `debian`, `fedora`, `linuxbrew`, `linuxbrew-debian`, `popos`, `thinkcentre`, `thinkcentre-arch`, `thinkcentre-debian`).
 
-When making changes for a specific machine, work on the appropriate branch and consider whether changes should be merged/rebased into related branches.
+- **New machine:** branch from `master`, customize `install.conf.yaml` and local files, run `./install`.
+- **Shared changes:** make them on `master`, then run `git merge master` on each machine branch that needs them.
+- **Machine-specific changes:** work on the matching branch and consider whether related branches (e.g. `chromebook` / `chromebook-debian`) need the same change.
 
-## What Gets Linked (`install.conf.yaml`)
+## Managed Files
 
-| Symlink target | Source |
+`install.conf.yaml` controls what gets symlinked. On `master` the links are:
+
+| Repo file | Symlink target |
 |---|---|
-| `~/.alias_local` | `alias_local` |
-| `~/.env_local` | `env_local` |
-| `~/.gitconfig_local` | `gitconfig_local` |
-| `~/.npmrc` | `npmrc` |
-| `~/.config/kitty/local.conf` | `kitty/local.conf` |
+| `alias_local` | `~/.alias_local` |
+| `env_local` | `~/.env_local` |
+| `gitconfig_local` | `~/.gitconfig_local` |
 
-These files are machine-local overrides that the main dotfiles repo includes (e.g., `.gitconfig_local` is included by the main `.gitconfig` via `[include]`).
+Machine branches add their own entries, for example `npmrc` → `~/.npmrc`, `kitty/local.conf` → `~/.config/kitty/local.conf`, `gemini/settings.json`, `claude/settings.json`, `ghostty/*`, or `systemd/rclone@.service`. Check the branch's `install.conf.yaml` for the real list.
+
+These are machine-local overrides that the main dotfiles repo includes (e.g. `.gitconfig_local` via the main `.gitconfig`'s `[include]`, and `.env_local` / `.alias_local` sourced by the main `zshrc`).
+
+## Conventions for `env_local`
+
+`env_local` is shared across machines, so per-tool PATH entries must be safe where the tool is absent. Guard each one with `[ -d ... ]` or `[ -f ... ]` and use `$HOME` rather than a hardcoded home directory.
+
+## Adding a New Dotfile
+
+1. Move the file into this repo directory.
+2. Add an entry under `link:` in `install.conf.yaml`.
+3. Run `./install`.
+
+## Agent Skills
+
+On the `fedora` branch, `.agents/skills/dotbot/` contains a reusable skill for working with Dotbot configuration (reference docs in `references/`, a template in `assets/install.conf.yaml`, and a `SKILL.md` defining how agents invoke Dotbot workflows).
