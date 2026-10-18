@@ -9,12 +9,12 @@ Branching Strategy
 This repository uses a **branch-per-machine** (or group of machines) strategy to manage diverse configurations:
 
 - `master`: Contains common "local" defaults and templates shared across most environments.
-- **Workstation branches**: Tailored configurations for specific hardware or OS distributions. Examples include:
-    - `popos`: Main desktop configuration.
-    - `fedora`: Fedora workstation configuration.
-    - `chromebook-debian`: Linux environment on Chromebook.
-    - `thinkcentre-arch` / `thinkcentre-debian`: Home server/desktop setups.
-    - `linuxbrew`: Environments using Homebrew on Linux.
+- **Workstation branches**: Tailored configurations for specific hardware or OS distributions. Run `git branch -r` for the full list. Examples include:
+    - `popos`, `fedora`: Desktop workstations.
+    - `chromebook` / `chromebook-debian`: Linux environment on a Chromebook.
+    - `thinkcentre`, `thinkcentre-arch` / `thinkcentre-debian`: Home server/desktop setups.
+    - `linuxbrew` / `linuxbrew-debian`: Environments using Homebrew on Linux.
+    - `android`, `debian`: Other environments.
 
 Key Configuration Files
 ----------------------
@@ -24,7 +24,9 @@ The following files are typically managed and linked by this repository (via [Do
 - `~/.alias_local`: Custom shell aliases specific to the machine or environment.
 - `~/.env_local`: Local environment variables (e.g., API keys, local paths, PATH exports).
 - `~/.gitconfig_local`: Local Git user details (name, email) and machine-specific git settings.
-- `~/.npmrc`: Node.js registry settings and local npm configuration.
+- `~/.claude/settings.json`, `~/.claude/statusline-command.sh`: Claude Code settings and status line.
+- `~/.gemini/settings.json`: Gemini CLI settings.
+- `~/.npmrc`: Node.js registry settings and local npm configuration (machine branches).
 
 Workflow & Installation
 ----------------------

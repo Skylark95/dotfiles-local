@@ -16,9 +16,11 @@ This project serves as a machine-specific companion to a primary dotfiles reposi
 - `install.ps1`: A PowerShell alternative for Windows environments.
 
 ### Local Overrides
-- `env_local`: Manages local environment variables, including `PATH` extensions (e.g., Homebrew, local bin directories, Bun, npm-global).
+- `env_local`: Manages local environment variables, including `PATH` extensions (e.g., local bin directories, Bun, npm-global, opencode).
 - `alias_local`: Defines machine-specific shell aliases.
 - `gitconfig_local`: Contains local Git user identity (name/email).
+- `claude/`: Claude Code `settings.json` and `statusline-command.sh` (the status line needs `jq`).
+- `gemini/settings.json`: Gemini CLI settings.
 - `npmrc`: Sets local npm configurations, such as the global prefix (`~/.npm-global`).
 
 ## Branching Strategy

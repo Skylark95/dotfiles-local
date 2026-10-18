@@ -5,17 +5,18 @@
 
 - clean: ['~', '~/.config/kitty', '~/.config/ghostty']
 
-- link:
+- link: 
     ~/.alias_local:
     ~/.env_local:
     ~/.gitconfig_local:
     ~/.npmrc:
-    ~/.gemini/settings.json: gemini/settings.json
     ~/.claude/settings.json: claude/settings.json
+    ~/.claude/statusline-command.sh: claude/statusline-command.sh
+    ~/.gemini/settings.json: gemini/settings.json
     ~/.config/ghostty/config.ghostty: ghostty/config.ghostty
     ~/.config/ghostty/launch-tmux.sh: ghostty/launch-tmux.sh
     ~/.local/bin/pt: bin/pt
 
-- shell:
+- shell: 
   - git submodule sync --recursive
   - git submodule update --init --recursive
