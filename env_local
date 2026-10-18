@@ -1,6 +1,5 @@
 # shell
 export DOTFILES_LOCAL="$HOME/.dotfiles-local"
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 
 if [ -d "$HOME/bin" ]; then
   export PATH="$PATH:$HOME/bin"
