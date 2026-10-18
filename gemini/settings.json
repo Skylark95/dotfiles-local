@@ -1,0 +1,48 @@
+{
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  },
+  "general": {
+    "vimMode": true,
+    "previewFeatures": true,
+    "enablePromptCompletion": false,
+    "enableAutoUpdate": false,
+    "preferredEditor": "neovim",
+    "sessionRetention": {
+      "warningAcknowledged": true,
+      "enabled": true,
+      "maxAge": "120d"
+    },
+    "plan": {
+      "enabled": true
+    }
+  },
+  "tools": {
+    "shell": {
+      "showColor": true
+    }
+  },
+  "ui": {
+    "showModelInfoInChat": true,
+    "theme": "Dracula",
+    "showStatusInTitle": true,
+    "showMemoryUsage": true,
+    "showCitations": true
+  },
+  "context": {
+    "fileName": [
+      "AGENTS.md",
+      "CONTEXT.md",
+      "GEMINI.md"
+    ]
+  },
+  "experimental": {},
+  "ide": {
+    "enabled": true
+  },
+  "agents": {
+    "overrides": {}
+  }
+}
