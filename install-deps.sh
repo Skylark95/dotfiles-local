@@ -26,6 +26,9 @@ for arg in "$@"; do
   esac
 done
 
+workdir=$(mktemp -d)
+trap 'rm -rf "$workdir"' EXIT
+
 # True if no steps were named, or this one was
 want() { [[ ${#steps[@]} -eq 0 || " ${steps[*]} " == *" $1 "* ]]; }
 
@@ -130,12 +133,12 @@ if want lazygit; then
   installed=$(have lazygit && lazygit --version | grep -Po 'version=\K[0-9.]+' | head -1 || echo 0)
   version=$(latest_tag jesseduffield/lazygit)
   if needs_install lazygit "$installed" "$version"; then
-    tmp=$(mktemp -d)
+    tmp=$workdir/lazygit
+    mkdir -p "$tmp"
     curl -fsSL -o "$tmp/lazygit.tar.gz" \
       "https://github.com/jesseduffield/lazygit/releases/download/v${version}/lazygit_${version}_Linux_${arch_gnu}.tar.gz"
-    tar -xzf "$tmp/lazygit.tar.gz" -C "$tmp" lazygit
+    tar -xzf "$tmp/lazygit.tar.gz" -C "$tmp"
     install -D "$tmp/lazygit" "$HOME/.local/bin/lazygit"
-    rm -rf "$tmp"
   fi
 fi
 
@@ -146,12 +149,12 @@ if want gitui; then
   if needs_install gitui "$installed" "$version"; then
     # Not packaged in Debian 12; install the release into ~/.local/bin
     case "$arch_gnu" in x86_64) gitui_arch=x86_64 ;; *) gitui_arch=aarch64 ;; esac
-    tmp=$(mktemp -d)
+    tmp=$workdir/gitui
+    mkdir -p "$tmp"
     curl -fsSL -o "$tmp/gitui.tar.gz" \
       "https://github.com/gitui-org/gitui/releases/download/v${version}/gitui-linux-${gitui_arch}.tar.gz"
-    tar -xzf "$tmp/gitui.tar.gz" -C "$tmp" gitui
+    tar -xzf "$tmp/gitui.tar.gz" -C "$tmp"
     install -D "$tmp/gitui" "$HOME/.local/bin/gitui"
-    rm -rf "$tmp"
   fi
 fi
 
@@ -161,12 +164,12 @@ if want tofu; then
   version=$(latest_tag opentofu/opentofu)
   if needs_install tofu "$installed" "$version"; then
     # Not packaged in Debian; install the release into ~/.local/bin
-    tmp=$(mktemp -d)
+    tmp=$workdir/tofu
+    mkdir -p "$tmp"
     curl -fsSL -o "$tmp/tofu.tar.gz" \
       "https://github.com/opentofu/opentofu/releases/download/v${version}/tofu_${version}_linux_${arch_amd}.tar.gz"
-    tar -xzf "$tmp/tofu.tar.gz" -C "$tmp" tofu
+    tar -xzf "$tmp/tofu.tar.gz" -C "$tmp"
     install -D "$tmp/tofu" "$HOME/.local/bin/tofu"
-    rm -rf "$tmp"
   fi
 fi
 
@@ -187,13 +190,13 @@ if want nvim; then
     install_nvim=true
   fi
   if $install_nvim; then
-    tmp=$(mktemp -d)
+    tmp=$workdir/nvim
+    mkdir -p "$tmp"
     curl -fsSL -o "$tmp/nvim.tar.gz" \
       "https://github.com/neovim/neovim/releases/download/v${version}/nvim-linux-${arch_gnu}.tar.gz"
     tar -xzf "$tmp/nvim.tar.gz" -C "$tmp"
     rm -rf "$HOME/.local/nvim-${version}"
     mv "$tmp/nvim-linux-${arch_gnu}" "$HOME/.local/nvim-${version}"
-    rm -rf "$tmp"
     mkdir -p "$HOME/.local/bin"
     ln -sfn "$HOME/.local/nvim-${version}/bin/nvim" "$HOME/.local/bin/nvim"
     # Keep the active version and the one before it
