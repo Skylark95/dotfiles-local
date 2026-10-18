@@ -34,8 +34,11 @@ Each branch targets a specific machine or group of machines. `master` holds shar
 | `alias_local` | `~/.alias_local` |
 | `env_local` | `~/.env_local` |
 | `gitconfig_local` | `~/.gitconfig_local` |
+| `claude/settings.json` | `~/.claude/settings.json` |
+| `claude/statusline-command.sh` | `~/.claude/statusline-command.sh` |
+| `gemini/settings.json` | `~/.gemini/settings.json` |
 
-Machine branches add their own entries, for example `npmrc` → `~/.npmrc`, `kitty/local.conf` → `~/.config/kitty/local.conf`, `gemini/settings.json`, `claude/settings.json`, `ghostty/*`, or `systemd/rclone@.service`. Check the branch's `install.conf.yaml` for the real list.
+Machine branches add their own entries, for example `npmrc` → `~/.npmrc`, `ghostty/*`, `bin/pt`, or `systemd/rclone@.service`. Check the branch's `install.conf.yaml` for the real list.
 
 These are machine-local overrides that the main dotfiles repo includes (e.g. `.gitconfig_local` via the main `.gitconfig`'s `[include]`, and `.env_local` / `.alias_local` sourced by the main `zshrc`).
 
@@ -51,4 +54,4 @@ These are machine-local overrides that the main dotfiles repo includes (e.g. `.g
 
 ## Agent Skills
 
-On the `fedora` branch, `.agents/skills/dotbot/` contains a reusable skill for working with Dotbot configuration (reference docs in `references/`, a template in `assets/install.conf.yaml`, and a `SKILL.md` defining how agents invoke Dotbot workflows).
+`.agents/skills/dotbot/` contains a reusable skill for working with Dotbot configuration (reference docs in `references/`, a template in `assets/install.conf.yaml`, and a `SKILL.md` defining how agents invoke Dotbot workflows).
