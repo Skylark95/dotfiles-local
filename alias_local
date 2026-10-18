@@ -1,2 +1,3 @@
  # Quick jump to dotfiles (local)
  alias dotfileslocal="cd $DOTFILES_LOCAL"
+ alias vim="nvim"
