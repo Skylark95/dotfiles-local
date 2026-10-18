@@ -13,12 +13,17 @@ have() { command -v "$1" &>/dev/null; }
 echo "==> Installing dnf packages"
 dnf_pkgs=()
 declare -A dnf_bin=(
+  [bat]=bat
   [diff-so-fancy]=diff-so-fancy
+  [eza]=eza
   [fd-find]=fd
   [fzf]=fzf
   [gitui]=gitui
+  [ImageMagick]=magick
+  [ripgrep]=rg
   [tig]=tig
   [xclip]=xclip
+  [zoxide]=zoxide
   [awscli2]=aws
   [jsonnet]=jsonnet
   [maven]=mvn
