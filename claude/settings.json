@@ -7,7 +7,8 @@
     "type": "command",
     "command": "sh ~/.claude/statusline-command.sh",
     "padding": 0,
-    "refreshInterval": 2
+    "refreshInterval": 2,
+    "hideVimModeIndicator": true
   },
   "modelSettings": {
     "claude-sonnet-5": {

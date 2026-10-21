@@ -1,148 +1,173 @@
 #!/bin/sh
+# Powerline-style Claude Code status line, Dracula via the terminal's palette.
+#
+# Claude Code downsamples truecolor to the 256-color cube, which washes the
+# colors out, so segments use palette indices: the Ghostty Dracula theme maps
+# them to the same colors the tmux bar uses. Orange has no palette slot and the
+# tmux pink (#d75faf) sits exactly on the cube, so both use 256-color indices.
+#
+# Left: model, effort, context, cache countdown. Right: lines changed,
+# worktree and git state, 5h limit. The right group is padded out to the
+# terminal width (COLUMNS is set by Claude Code) and wraps to a second line
+# when there is no room.
+
 input=$(cat)
 
-model=$(echo "$input" | jq -r '.model.display_name // "Unknown Model"')
-effort=$(echo "$input" | jq -r '.effort.level // empty')
-used=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-worktree=$(echo "$input" | jq -r '.worktree.name // empty')
-total_cost=$(echo "$input" | jq -r '.cost.total_cost_usd // empty')
-current_dir=$(echo "$input" | jq -r '.worktree.original_cwd // .workspace.project_dir // .workspace.current_dir // .cwd // empty')
-rl_5h_pct=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty' | awk '{printf "%.0f", $1}')
-rl_5h_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
-rl_7d_pct=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
-rl_7d_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
+# One jq call; @sh quoting makes the output safe to eval.
+eval "$(printf '%s' "$input" | jq -r '
+  "vim_mode=\(.vim.mode // "" | @sh)",
+  "model=\(.model.display_name // "Unknown" | @sh)",
+  "effort=\(.effort.level // "" | @sh)",
+  "used=\(.context_window.used_percentage // "" | @sh)",
+  "rl_pct=\(.rate_limits.five_hour.used_percentage // "" | @sh)",
+  "rl_reset=\(.rate_limits.five_hour.resets_at // "" | @sh)",
+  "cache_present=\(if .prompt_cache then 1 else 0 end)",
+  "cache_exp=\(.prompt_cache.expires_at // "" | @sh)",
+  "lines_add=\(.cost.total_lines_added // "" | @sh)",
+  "lines_del=\(.cost.total_lines_removed // "" | @sh)",
+  "worktree=\(.workspace.git_worktree // "" | @sh)",
+  "cwd=\(.workspace.current_dir // .cwd // "" | @sh)"
+')"
 
-if [ -n "$used" ]; then
-  used_display=$(printf "%.0f" "$used")
-  usage_str="${used_display}%"
-else
-  usage_str="0%"
-fi
-
-if [ -n "$worktree" ]; then
-  worktree_str="${worktree}"
-else
-  worktree_str="no worktree"
-fi
-
-# Dracula via the terminal's 16-color palette. Claude Code downsamples
-# truecolor to the 256-color cube, which washes the colors out; palette
-# indices pass through untouched and the Ghostty Dracula theme supplies them.
-# Values are SGR color numbers 0-7 (add 30 for fg, 40 for bg) or 8-15 bright.
-BG=0; FG_LIGHT=7; COMMENT=8
-PURPLE=4; PINK=5; CYAN=6; GREEN=2; YELLOW=3; RED=1
-ORANGE=3   # no orange in the 16-color palette, yellow is closest
-
-# fgc / bgc <index> print the SGR parameter for that palette index
-fgc() { [ "$1" -lt 8 ] && echo $(( 30 + $1 )) || echo $(( 90 + $1 - 8 )); }
-bgc() { [ "$1" -lt 8 ] && echo $(( 40 + $1 )) || echo $(( 100 + $1 - 8 )); }
+now=$(date +%s)
 
 ESC=$(printf '\033')
-ARROW=$(printf '\356\202\260')   # U+E0B0 powerline
-BRANCH=$(printf '\356\202\240')  # U+E0A0 powerline branch
+ARROW=$(printf '\356\202\260')   # U+E0B0
+RARROW=$(printf '\356\202\262')  # U+E0B2
 
-# Claude Code sets COLUMNS to the current terminal width before each run, and
-# re-runs the script on refreshInterval, so right alignment follows resizes.
-# STATUSLINE_WIDTH is the fallback if COLUMNS is missing.
-WIDTH=$(( ${COLUMNS:-${STATUSLINE_WIDTH:-100}} - 6 ))
-RARROW=$(printf '\356\202\262')  # U+E0B2 powerline (right-pointing side)
+# Background SGR codes (palette indices); text is palette 0 on all of them.
+PURPLE=44; GREEN=42; CYAN=46; YELLOW=43; RED=41
+PINK="48;5;169"; ORANGE="48;5;215"
+TEXT=30
 
-line=""
-prev=""
-linew=0
-# seg <bg> <fg> <text> [visible-width-of-text]
+# tofg <bg code> prints the matching foreground code, for arrows.
+tofg() {
+  case "$1" in
+    48\;5\;*) echo "38;5;${1#48;5;}" ;;
+    *) echo $(( $1 - 10 )) ;;
+  esac
+}
+
+line=""; plain=""; prev=""
+# seg <bg> <text> [style]: left-pointing group, arrow after the previous one
 seg() {
-  if [ -n "$prev" ]; then
-    line="${line}${ESC}[$(fgc "$prev");$(bgc "$1")m${ARROW}"
-    linew=$(( linew + 1 ))
-  fi
-  line="${line}${ESC}[$(fgc "$2");$(bgc "$1")m $3 "
-  linew=$(( linew + ${4:-${#3}} + 2 ))
+  [ -n "$prev" ] && { line="${line}${ESC}[$(tofg "$prev");${1}m${ARROW}"; plain="${plain}>"; }
+  line="${line}${ESC}[${TEXT};${1}m${3} ${2} ${ESC}[22m"
+  plain="${plain} ${2} "
   prev="$1"
 }
-# rseg is seg mirrored for the right side: the arrow comes first
+# rseg <bg> <text>: mirrored for the right-hand group
 rseg() {
-  line="${line}${ESC}[$(fgc "$1")${prev:+;$(bgc "$prev")}m${RARROW}"
-  line="${line}${ESC}[$(fgc "$2");$(bgc "$1")m $3 "
-  linew=$(( linew + ${4:-${#3}} + 3 ))
+  line="${line}${ESC}[$(tofg "$1")${prev:+;$prev}m${RARROW}"
+  line="${line}${ESC}[${TEXT};${1}m ${2} "
+  plain="${plain}< ${2} "
   prev="$1"
 }
-# end the current left line with a closing arrow; the width includes it
-endline() {
-  line="${line}${ESC}[0m${ESC}[$(fgc "$prev")m${ARROW}${ESC}[0m"
-  linew=$(( linew + 1 ))
+# a left group gets a closing arrow
+finish_left() {
+  line="${line}${ESC}[0m${ESC}[$(tofg "$prev")m${ARROW}${ESC}[0m"
+  plain="${plain}>"
 }
+finish_right() { line="${line}${ESC}[0m"; }
+# visible width: count characters, not bytes
+width() { printf '%s' "$plain" | LC_ALL=C.UTF-8 wc -m | tr -d ' '; }
 
-git_str=""
-if git rev-parse --git-dir > /dev/null 2>&1; then
-  branch=$(git branch --show-current 2>/dev/null)
-  [ -z "$branch" ] && branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-  staged=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
-  modified=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
-
-  git_str="${BRANCH} ${branch}"
-  [ "$staged" -gt 0 ] && git_str="${git_str} +${staged}"
-  [ "$modified" -gt 0 ] && git_str="${git_str} ~${modified}"
-else
-  git_str="no branch"
-fi
-
-if [ -n "$total_cost" ]; then
-  cost_display=$(awk "BEGIN { printf \"%.2f\", $total_cost }")
-  block_str="\$${cost_display}"
-else
-  block_str="\$0.00"
-fi
-
+# 10-cell bar: heavy line for used, a half-cell at the edge, thin for the rest
 make_bar() {
-  pct="$1"
-  width=10
-  filled=$(( pct * width / 100 ))
-  bar=""
-  i=0
+  filled=$(( $1 * 10 / 100 )); [ "$filled" -gt 10 ] && filled=10
+  bar=""; i=0
   while [ $i -lt $filled ]; do bar="${bar}━"; i=$(( i + 1 )); done
-  while [ $i -lt $width ];  do bar="${bar}─"; i=$(( i + 1 )); done
-  printf "%s" "$bar"
+  if [ $filled -lt 10 ]; then bar="${bar}╸"; i=$(( i + 1 )); fi
+  while [ $i -lt 10 ]; do bar="${bar}┄"; i=$(( i + 1 )); done
+  printf '%s' "$bar"
 }
 
-rl_str=""
-rl_color="$GREEN"
-if [ -n "$rl_5h_pct" ]; then
-  if [ "$rl_5h_pct" -ge 90 ]; then rl_color="$RED"
-  elif [ "$rl_5h_pct" -ge 70 ]; then rl_color="$YELLOW"
-  fi
-  reset_time=$(date -r "$rl_5h_reset" "+%-I:%M%p" 2>/dev/null || date -d "@$rl_5h_reset" "+%-I:%M%p" 2>/dev/null)
-  rl_str="5h $(make_bar "$rl_5h_pct") ${rl_5h_pct}% resets ${reset_time}"
-  # visible width: the 10-character bar plus the ASCII around it
-  rl_text="5h  ${rl_5h_pct}% resets ${reset_time}"
-  rl_w=$(( ${#rl_text} + 10 ))
+# ---- left group ----
+# vim mode replaces the built-in "-- INSERT --" row (hideVimModeIndicator)
+case "$vim_mode" in
+  INSERT) seg "$GREEN" "$vim_mode" "${ESC}[1m" ;;
+  NORMAL) seg "$CYAN" "$vim_mode" "${ESC}[1m" ;;
+  VISUAL*) seg "$ORANGE" "$vim_mode" "${ESC}[1m" ;;
+esac
+seg "$PURPLE" "✱ $model" "${ESC}[1m"
+[ -n "$effort" ] && seg "$PINK" "✦ $effort"
+if [ -n "$used" ]; then
+  seg "$GREEN" "◔ $(printf '%.0f' "$used")%"
 fi
+if [ "$cache_present" = 1 ]; then
+  rem=$(( ${cache_exp:-0} - now ))
+  if [ "$rem" -gt 0 ]; then
+    if [ "$rem" -ge 3600 ]; then
+      cache_text="◴ $(( rem / 3600 ))h $(( rem % 3600 / 60 ))m"
+    else
+      cache_text=$(printf '◴ %d:%02d' $(( rem / 60 )) $(( rem % 60 )))
+    fi
+  else
+    cache_text="◴ cold"
+  fi
+  seg "$YELLOW" "$cache_text"
+fi
+finish_left
+left="$line"; leftw=$(width)
 
-repo_root=$(cd "$current_dir" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null || echo "$current_dir")
-dir_display=$(basename "$repo_root")
+# ---- right group ----
+line=""; plain=""; prev=""
+[ -n "$lines_add$lines_del" ] && rseg "$PURPLE" "+${lines_add:-0} -${lines_del:-0}"
 
-# line 1: model and effort on the left; context, cost and rate limit on the right
-seg "$PURPLE" "$BG" "$model"
-[ -n "$effort" ] && seg "$PINK" "$BG" "effort $effort"
-endline
-left="$line"; leftw=$linew
+# git state: ahead/behind, change counts and a dirty/clean marker, no branch
+git_text=""
+if [ -n "$cwd" ] && gitout=$(cd "$cwd" 2>/dev/null && git status --porcelain=v2 -b 2>/dev/null) && [ -n "$gitout" ]; then
+  set -- $(printf '%s\n' "$gitout" | awk '
+    /^# branch.ab/ { a = substr($3, 2); b = substr($4, 2) }
+    /^[12] /       { if (substr($2,1,1) != ".") s++; if (substr($2,2,1) != ".") m++ }
+    /^\? /         { u++ }
+    /^u /          { c++ }
+    END { print a+0, b+0, s+0, m+0, u+0, c+0 }')
+  ahead=$1; behind=$2; staged=$3; modified=$4; untracked=$5; conflicts=$6
+  [ -n "$worktree" ] && git_text="⧉ $worktree"
+  sync=""
+  [ "$ahead" -gt 0 ] && sync="↑${ahead}"
+  [ "$behind" -gt 0 ] && sync="${sync}↓${behind}"
+  [ -n "$sync" ] && git_text="${git_text:+$git_text }${sync}"
+  counts=""
+  [ "$staged" -gt 0 ] && counts="+${staged}"
+  [ "$modified" -gt 0 ] && counts="${counts:+$counts }~${modified}"
+  [ "$untracked" -gt 0 ] && counts="${counts:+$counts }?${untracked}"
+  [ "$conflicts" -gt 0 ] && counts="${counts:+$counts }!${conflicts}"
+  if [ -n "$counts" ]; then
+    git_text="${git_text:+$git_text }(${counts}) ●"
+  else
+    git_text="${git_text:+$git_text }✓"
+  fi
+fi
+[ -n "$git_text" ] && rseg "$ORANGE" "$git_text"
 
-line=""; prev=""; linew=0
-rseg "$CYAN" "$BG" "ctx $usage_str"
-rseg "$GREEN" "$BG" "$block_str"
-# the bar is 10 multibyte characters, so give its visible width explicitly
-[ -n "$rl_str" ] && rseg "$rl_color" "$BG" "$rl_str" "$rl_w"
-line="${line}${ESC}[0m"
-right="$line"; rightw=$linew
+# 5h limit on the far right: cyan, yellow from 70%, red from 90%
+if [ -n "$rl_pct" ]; then
+  rl_pct=$(printf '%.0f' "$rl_pct")
+  color="$CYAN"
+  [ "$rl_pct" -ge 70 ] && color="$YELLOW"
+  [ "$rl_pct" -ge 90 ] && color="$RED"
+  rl_text="◱ $(make_bar "$rl_pct") ${rl_pct}%"
+  if [ -n "$rl_reset" ]; then
+    secs=$(( rl_reset - now ))
+    if [ "$secs" -gt 0 ]; then
+      h=$(( secs / 3600 )); m=$(( secs % 3600 / 60 ))
+      if [ "$h" -gt 0 ]; then rl_text="$rl_text (${h}h ${m}m)"; else rl_text="$rl_text (${m}m)"; fi
+    fi
+  fi
+  rseg "$color" "$rl_text"
+fi
+finish_right
+right="$line"; rightw=$(width)
 
-gap=$(( WIDTH - leftw - rightw ))
-[ "$gap" -lt 1 ] && gap=1
-printf "%s%*s%s\n" "$left" "$gap" "" "$right"
-
-# line 2: directory, worktree, git
-line=""; prev=""; linew=0
-seg "$PURPLE" "$BG" "$dir_display"
-seg "$COMMENT" "$FG_LIGHT" "$worktree_str"
-seg "$ORANGE" "$BG" "$git_str"
-endline
-printf "%s" "$line"
+# ---- output ----
+total=$(( ${COLUMNS:-100} - 4 ))
+gap=$(( total - leftw - rightw ))
+if [ -z "$prev" ]; then
+  printf '%s' "$left"
+elif [ "$gap" -lt 1 ]; then
+  printf '%s\n%s' "$left" "$right"
+else
+  printf '%s%*s%s' "$left" "$gap" "" "$right"
+fi
