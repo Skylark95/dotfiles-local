@@ -1,2 +1,3 @@
 shell-integration = zsh
 theme = Dracula
+font-family = JetBrainsMono Nerd Font
