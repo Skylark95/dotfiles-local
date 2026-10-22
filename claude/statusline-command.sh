@@ -15,7 +15,6 @@ input=$(cat)
 
 # One jq call; @sh quoting makes the output safe to eval.
 eval "$(printf '%s' "$input" | jq -r '
-  "vim_mode=\(.vim.mode // "" | @sh)",
   "model=\(.model.display_name // "Unknown" | @sh)",
   "effort=\(.effort.level // "" | @sh)",
   "used=\(.context_window.used_percentage // "" | @sh)",
@@ -83,12 +82,6 @@ make_bar() {
 }
 
 # ---- left group ----
-# vim mode replaces the built-in "-- INSERT --" row (hideVimModeIndicator)
-case "$vim_mode" in
-  INSERT) seg "$GREEN" "$vim_mode" "${ESC}[1m" ;;
-  NORMAL) seg "$CYAN" "$vim_mode" "${ESC}[1m" ;;
-  VISUAL*) seg "$ORANGE" "$vim_mode" "${ESC}[1m" ;;
-esac
 seg "$PURPLE" "✱ $model" "${ESC}[1m"
 [ -n "$effort" ] && seg "$PINK" "✦ $effort"
 if [ -n "$used" ]; then
@@ -105,7 +98,7 @@ if [ "$cache_present" = 1 ]; then
   else
     cache_text="◴ cold"
   fi
-  seg "$YELLOW" "$cache_text"
+  seg "$CYAN" "$cache_text"
 fi
 finish_left
 left="$line"; leftw=$(width)
