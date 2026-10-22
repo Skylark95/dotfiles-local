@@ -16,6 +16,14 @@ Machine-specific dotfiles companion to the main [dotfiles](https://github.com/Sk
 
 `./install` also runs `git submodule sync` and `git submodule update --init --recursive` (the `shell` directive). After editing any config file, re-run `./install` to apply.
 
+## Claude Code Status Line
+
+`claude/statusline-command.sh` is pure `sh` + `jq` + `git`, run as `sh ~/.claude/statusline-command.sh`. Keep it executable.
+
+- Colors are terminal palette indices (e.g. `44`, `48;5;169`), not truecolor. Claude Code downsamples RGB to the 256-color cube, so the Ghostty Dracula theme supplies the exact colors.
+- Width comes from `$COLUMNS` (set by Claude Code) minus 4 for its built-in margin. The right group wraps to a second line if there is no room.
+- The line renders above Claude's built-in footer. It cannot be reordered and the footer's mode badge cannot be hidden.
+
 ## Branching Strategy
 
 Each branch targets a specific machine or group of machines. `master` holds shared defaults; every other branch is workstation-specific. Run `git branch -r` for the current list (at the time of writing: `android`, `chromebook`, `chromebook-debian`, `debian`, `fedora`, `linuxbrew`, `linuxbrew-debian`, `popos`, `thinkcentre`, `thinkcentre-arch`, `thinkcentre-debian`).
@@ -23,6 +31,8 @@ Each branch targets a specific machine or group of machines. `master` holds shar
 - **New machine:** branch from `master`, customize `install.conf.yaml` and local files, run `./install`.
 - **Shared changes:** make them on `master`, then run `git merge master` on each machine branch that needs them.
 - **Machine-specific changes:** work on the matching branch and consider whether related branches (e.g. `chromebook` / `chromebook-debian`) need the same change.
+
+Before pushing a machine branch, `git fetch` first. `fedora` has diverged from `origin/fedora` before. Rebase onto the remote rather than force-pushing, and merge `claude/settings.json` by hand, since other machines share it.
 
 ## Managed Files
 
