@@ -9,19 +9,20 @@
     "padding": 0,
     "refreshInterval": 2
   },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "superpowers@anthropic-plugin-directory": true,
+    "claude-md-management@anthropic-plugin-directory": true
+  },
+  "effortLevel": "medium",
   "modelSettings": {
     "claude-sonnet-5": {
       "effortLevel": "medium"
     }
   },
-  "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
-    "superpowers@anthropic-plugin-directory": true
-  },
+  "tui": "fullscreen",
   "theme": "dark",
   "editorMode": "vim",
-  "effortLevel": "medium",
-  "tui": "fullscreen",
   "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true
 }
