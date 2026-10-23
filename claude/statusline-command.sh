@@ -1,10 +1,10 @@
 #!/bin/sh
-# Powerline-style Claude Code status line, Dracula via the terminal's palette.
+# Powerline-style Claude Code status line, Dracula colors.
 #
-# Claude Code downsamples truecolor to the 256-color cube, which washes the
-# colors out, so segments use palette indices: the Ghostty Dracula theme maps
-# them to the same colors the tmux bar uses. Orange has no palette slot and the
-# tmux pink (#d75faf) sits exactly on the cube, so both use 256-color indices.
+# Segments use 256-color cube indices that sit closest to the Dracula palette,
+# so they look the same in any terminal. (fedora maps the 16 base palette slots
+# through Ghostty's Dracula theme instead; other terminals render those slots
+# with their own, different colors.)
 #
 # Left: model, effort, context, cache countdown. Right: lines changed,
 # worktree and git state, 5h limit. The right group is padded out to the
@@ -34,10 +34,10 @@ ESC=$(printf '\033')
 ARROW=$(printf '\356\202\260')   # U+E0B0
 RARROW=$(printf '\356\202\262')  # U+E0B2
 
-# Background SGR codes (palette indices); text is palette 0 on all of them.
-PURPLE=44; GREEN=42; CYAN=46; YELLOW=43; RED=41
+# Background SGR codes (256-color indices); text is near-black on all of them.
+PURPLE="48;5;141"; GREEN="48;5;84"; CYAN="48;5;117"; YELLOW="48;5;228"; RED="48;5;203"
 PINK="48;5;169"; ORANGE="48;5;215"
-TEXT=30
+TEXT="38;5;16"
 
 # tofg <bg code> prints the matching foreground code, for arrows.
 tofg() {
