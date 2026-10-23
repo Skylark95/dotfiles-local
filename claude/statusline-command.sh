@@ -20,6 +20,10 @@ eval "$(printf '%s' "$input" | jq -r '
   "used=\(.context_window.used_percentage // "" | @sh)",
   "rl_pct=\(.rate_limits.five_hour.used_percentage // "" | @sh)",
   "rl_reset=\(.rate_limits.five_hour.resets_at // "" | @sh)",
+  "ctx_size=\(.context_window.context_window_size // "" | @sh)",
+  "tok_used=\(if .context_window.current_usage then (.context_window.current_usage | (.input_tokens // 0) + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0)) else "" end | @sh)",
+  "dur_ms=\(.cost.total_duration_ms // "" | @sh)",
+  "api_ms=\(.cost.total_api_duration_ms // "" | @sh)",
   "cache_present=\(if .prompt_cache then 1 else 0 end)",
   "cache_exp=\(.prompt_cache.expires_at // "" | @sh)",
   "lines_add=\(.cost.total_lines_added // "" | @sh)",
@@ -81,11 +85,28 @@ make_bar() {
   printf '%s' "$bar"
 }
 
+# 76066 -> 76k, 1000000 -> 1M
+fmt_tok() {
+  awk -v n="$1" 'BEGIN {
+    if (n >= 1000000) { v = n / 1000000; u = "M" } else if (n >= 1000) { v = n / 1000; u = "k" } else { v = n; u = "" }
+    s = sprintf(v < 10 && u != "" ? "%.1f" : "%.0f", v); sub(/\.0$/, "", s); print s u }'
+}
+# milliseconds -> 45s, 12m, 1h 5m
+fmt_dur() {
+  s=$(( $1 / 1000 ))
+  if [ "$s" -ge 3600 ]; then printf '%dh %dm' $(( s / 3600 )) $(( s % 3600 / 60 ))
+  elif [ "$s" -ge 60 ]; then printf '%dm' $(( s / 60 ))
+  else printf '%ds' "$s"
+  fi
+}
+
 # ---- left group ----
 seg "$PURPLE" "✱ $model" "${ESC}[1m"
 [ -n "$effort" ] && seg "$PINK" "✦ $effort"
 if [ -n "$used" ]; then
-  seg "$GREEN" "◔ $(printf '%.0f' "$used")%"
+  ctx_text="◔ $(printf '%.0f' "$used")%"
+  [ -n "$tok_used" ] && [ -n "$ctx_size" ] && ctx_text="$ctx_text ($(fmt_tok "$tok_used")/$(fmt_tok "$ctx_size"))"
+  seg "$GREEN" "$ctx_text"
 fi
 if [ "$cache_present" = 1 ]; then
   rem=$(( ${cache_exp:-0} - now ))
@@ -99,6 +120,11 @@ if [ "$cache_present" = 1 ]; then
     cache_text="◴ cold"
   fi
   seg "$CYAN" "$cache_text"
+fi
+if [ -n "$dur_ms" ]; then
+  dur_text="◷ $(fmt_dur "$dur_ms")"
+  [ -n "$api_ms" ] && dur_text="$dur_text (api $(fmt_dur "$api_ms"))"
+  seg "$PURPLE" "$dur_text"
 fi
 finish_left
 left="$line"; leftw=$(width)
